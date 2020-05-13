@@ -16,7 +16,7 @@ variable "machine_count" {
 
 variable "libvirt_pool"{
   type = "string"
-  default = "vms"
+  default = "default"
 }
 
 variable "memory"{
