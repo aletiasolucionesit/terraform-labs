@@ -31,6 +31,19 @@ resource "libvirt_volume" "volume-qcow2" {
   base_volume_id = libvirt_volume.os_image.id
   count = var.machine_count
   pool = var.libvirt_pool
+  size = 21474836480
+}
+resource "libvirt_volume" "iscsi-qcow2"{
+  name = "${var.purpose}-tf-iscsi-${count.index+1}.qcow2"
+  count = var.machine_count
+  pool = var.libvirt_pool
+  size = 53687091200
+}
+resource "libvirt_volume" "isos-qcow2"{
+  name = "${var.purpose}-tf-isos-${count.index+1}.qcow2"
+  count = var.machine_count
+  pool = var.libvirt_pool
+  size = 21474836480
 }
 
 data "template_file" "user_data" {
@@ -87,6 +100,14 @@ resource "libvirt_domain" "domain-machine" {
     volume_id = libvirt_volume.volume-qcow2.*.id[count.index]
   }
 
+  disk {
+    volume_id = libvirt_volume.iscsi-qcow2.*.id[count.index]
+  }
+
+  disk {
+    volume_id = libvirt_volume.isos-qcow2.*.id[count.index]
+  }
+
   graphics {
     type        = "spice"
     listen_type = "address"
@@ -95,4 +116,3 @@ resource "libvirt_domain" "domain-machine" {
 }
 
 # IPs: use wait_for_lease true or after creation use terraform refresh and terraform show for the ips of domain
-
