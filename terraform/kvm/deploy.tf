@@ -4,13 +4,31 @@ provider "libvirt" {
 }
 
 
-# We fetch the latest ubuntu release image from their mirrors
+## Common
+data "template_file" "user_data" {
+  template = file("${path.module}/cloud_init.tpl")
+}
+
+data "template_file" "network_config" {
+  template = file("${path.module}/network_config.tpl")
+}
+
+# for more info about paramater check this out
+# https://github.com/dmacvicar/terraform-provider-libvirt/blob/master/website/docs/r/cloudinit.html.markdown
+# Use CloudInit to add our ssh-key to the instance
+# you can add also meta_data field
+resource "libvirt_cloudinit_disk" "commoninit" {
+  name           = format("commoninit-%s.iso",var.purpose)
+  user_data      = data.template_file.user_data.rendered
+  network_config = data.template_file.network_config.rendered
+}
+
 
 resource "libvirt_network" "network"{
-	name = "${var.purpose}-tf"
+    name = format("%s-tf",var.purpose)
     mode = "nat"
-    domain = "${var.purpose}.${var.base_domain}"
-    addresses = ["${var.base_ip}.0/24"]
+    domain = format("%s.%s",var.purpose,var.base_domain)
+    addresses = [format("%s.0/24",var.base_ip)]
     dhcp{
 		enabled = true
 	}
@@ -21,53 +39,31 @@ resource "libvirt_network" "network"{
 }
 
 resource "libvirt_volume" "os_image" {
-  name = "os_image_${var.purpose}"
+  name = format("os_image_%s",var.purpose)
   source = var.image_id
   pool = var.libvirt_pool
 }
 
-resource "libvirt_volume" "volume-qcow2" {
-  name = "${var.purpose}-tf-${count.index+1}.qcow2"
+resource "libvirt_volume" "basevolume-qcow2" {
+  name = format("%s-tf-%s.qcow2",var.purpose,count.index+1)
   base_volume_id = libvirt_volume.os_image.id
   count = var.machine_count
   pool = var.libvirt_pool
-  size = 21474836480
-}
-resource "libvirt_volume" "iscsi-qcow2"{
-  name = "${var.purpose}-tf-iscsi-${count.index+1}.qcow2"
-  count = var.machine_count
-  pool = var.libvirt_pool
-  size = 53687091200
-}
-resource "libvirt_volume" "isos-qcow2"{
-  name = "${var.purpose}-tf-isos-${count.index+1}.qcow2"
-  count = var.machine_count
-  pool = var.libvirt_pool
-  size = 21474836480
+  size = var.maindisk_size
 }
 
-data "template_file" "user_data" {
-  template = "${file("${path.module}/cloud_init.cfg")}"
-}
 
-data "template_file" "network_config" {
-  template = "${file("${path.module}/network_config.cfg")}"
-}
-
-# for more info about paramater check this out
-# https://github.com/dmacvicar/terraform-provider-libvirt/blob/master/website/docs/r/cloudinit.html.markdown
-# Use CloudInit to add our ssh-key to the instance
-# you can add also meta_data field
-resource "libvirt_cloudinit_disk" "commoninit" {
-  name           = "commoninit-${var.purpose}.iso"
-  user_data      = data.template_file.user_data.rendered
-  network_config = data.template_file.network_config.rendered
-}
+# resource "libvirt_volume" "secondary-qcow2"{
+#   name = format("%s-tf-%s-%s.qcow2",var.purpose,var.secondary,count.index+1)
+#   count = var.machine_count
+#   pool = var.libvirt_pool
+#   size = var.secondarydisk_size
+# }
 
 # Create the machine
 resource "libvirt_domain" "domain-machine" {
   count = var.machine_count
-  name   = "${var.purpose}-tf-${count.index+1}"
+  name   = format("%s-tf-%s",var.purpose,count.index+1)
   memory = var.memory
   vcpu   = var.vcpu
 
@@ -75,9 +71,9 @@ resource "libvirt_domain" "domain-machine" {
 
   network_interface {
     network_name = libvirt_network.network.name
-    hostname       = "node-${count.index+1}.${var.purpose}.${var.base_domain}"
-    addresses      = ["${var.base_ip}.2${count.index+1}"]
-    mac            = "AA:BB:CC:11:22:2${count.index+1}"
+    hostname       = format("%s-%s.%s.%s",var.machinename,count.index+1,var.purpose,var.base_domain)
+    addresses      = [format("%s.%s.%s",var.base_ip,var.machinesubhost,count.index+1)]
+    mac            = format("AA:BB:CC:11:22:%s%s",var.machinesubhost,count.index+1)
     wait_for_lease = true
   }
 
@@ -97,16 +93,12 @@ resource "libvirt_domain" "domain-machine" {
   }
 
   disk {
-    volume_id = libvirt_volume.volume-qcow2.*.id[count.index]
+    volume_id = libvirt_volume.basevolume-qcow2.*.id[count.index]
   }
 
-  disk {
-    volume_id = libvirt_volume.iscsi-qcow2.*.id[count.index]
-  }
-
-  disk {
-    volume_id = libvirt_volume.isos-qcow2.*.id[count.index]
-  }
+#  disk {
+#    volume_id = libvirt_volume.secondary-qcow2.*.id[count.index]
+#  }
 
   graphics {
     type        = "spice"
