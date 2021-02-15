@@ -53,26 +53,39 @@ resource "libvirt_volume" "os_image" {
   pool = var.libvirt_pool
 }
 
-resource "libvirt_volume" "basevolume-qcow2" {
-  name = format("%s-tf-%s.qcow2",var.purpose,count.index+1)
+resource "libvirt_volume" "adminvolume-qcow2" {
+  name = format("%s-tf-admin.qcow2",var.purpose)
   base_volume_id = libvirt_volume.os_image.id
-  count = var.machine_count
   pool = var.libvirt_pool
   size = var.maindisk_size
 }
 
+resource "libvirt_volume" "monvolume-qcow2" {
+  name = format("%s-tf-mon-%s.qcow2",var.purpose,count.index+1)
+  base_volume_id = libvirt_volume.os_image.id
+  count = var.mon_count
+  pool = var.libvirt_pool
+  size = var.maindisk_size
+}
 
-# resource "libvirt_volume" "secondary-qcow2"{
-#   name = format("%s-tf-%s-%s.qcow2",var.purpose,var.secondary,count.index+1)
-#   count = var.machine_count
-#   pool = var.libvirt_pool
-#   size = var.secondarydisk_size
-# }
+resource "libvirt_volume" "osdvolume-qcow2" {
+  name = format("%s-tf-osd-%s.qcow2",var.purpose,count.index+1)
+  base_volume_id = libvirt_volume.os_image.id
+  count = var.osd_count
+  pool = var.libvirt_pool
+  size = var.maindisk_size
+}
+
+resource "libvirt_volume" "secondary-qcow2"{
+  name = format("%s-tf-%s-%s.qcow2",var.purpose,var.secondary,count.index+1)
+  count = var.osd_count
+  pool = var.libvirt_pool
+  size = var.secondarydisk_size
+}
 
 # Create the machine
-resource "libvirt_domain" "domain-machine" {
-  count = var.machine_count
-  name   = format("%s-tf-%s",var.purpose,count.index+1)
+resource "libvirt_domain" "admin-machine" {
+  name   = format("%s-admin-tf",var.purpose)
   memory = var.memory
   vcpu   = var.vcpu
 
@@ -80,9 +93,9 @@ resource "libvirt_domain" "domain-machine" {
 
   network_interface {
     network_name = libvirt_network.network.name
-    hostname       = format("%s-%s.%s.%s",var.machinename,count.index+1,var.purpose,var.base_domain)
-    addresses      = [format("%s.%s%s",var.base_ip,var.machinesubhost,count.index+1)]
-    mac            = format("AA:BB:CC:11:22:%s%s",var.machinesubhost,count.index+1)
+    hostname       = format("cephadmin.%s.%s",var.purpose,var.base_domain)
+    addresses      = [format("%s.10",var.base_ip)]
+    mac            = "AA:BB:CC:11:22:10"
     wait_for_lease = true
   }
 
@@ -102,12 +115,8 @@ resource "libvirt_domain" "domain-machine" {
   }
 
   disk {
-    volume_id = libvirt_volume.basevolume-qcow2.*.id[count.index]
+    volume_id = libvirt_volume.adminvolume-qcow2.id
   }
-
-#  disk {
-#    volume_id = libvirt_volume.secondary-qcow2.*.id[count.index]
-#  }
 
   graphics {
     type        = "spice"
@@ -117,3 +126,93 @@ resource "libvirt_domain" "domain-machine" {
 }
 
 # IPs: use wait_for_lease true or after creation use terraform refresh and terraform show for the ips of domain
+
+# Create the machine
+resource "libvirt_domain" "mon-machine" {
+  count = var.mon_count
+  name   = format("%s-mon-tf-%s",var.purpose,count.index+1)
+  memory = var.mon_memory
+  vcpu   = var.mon_vcpu
+
+  cloudinit = libvirt_cloudinit_disk.commoninit.id
+
+  network_interface {
+    network_name = libvirt_network.network.name
+    hostname       = format("cephmon-%s.%s.%s",count.index+1,var.purpose,var.base_domain)
+    addresses      = [format("%s.%s%s",var.base_ip,var.monsubhost,count.index+1)]
+    mac            = format("AA:BB:CC:11:22:%s%s",var.monsubhost,count.index+1)
+    wait_for_lease = true
+  }
+
+  # IMPORTANT: this is a known bug on cloud images, since they expect a console
+  # we need to pass it
+  # https://bugs.launchpad.net/cloud-images/+bug/1573095
+  console {
+    type        = "pty"
+    target_port = "0"
+    target_type = "serial"
+  }
+
+  console {
+    type        = "pty"
+    target_type = "virtio"
+    target_port = "1"
+  }
+
+  disk {
+    volume_id = libvirt_volume.monvolume-qcow2.*.id[count.index]
+  }
+
+  graphics {
+    type        = "spice"
+    listen_type = "address"
+    autoport    = true
+  }
+}
+
+# Create the machine
+resource "libvirt_domain" "osd-machine" {
+  count = var.osd_count
+  name   = format("%s-osd-tf-%s",var.purpose,count.index+1)
+  memory = var.memory
+  vcpu   = var.vcpu
+
+  cloudinit = libvirt_cloudinit_disk.commoninit.id
+
+  network_interface {
+    network_name = libvirt_network.network.name
+    hostname       = format("cephosd-%s.%s.%s",count.index+1,var.purpose,var.base_domain)
+    addresses      = [format("%s.%s%s",var.base_ip,var.osdsubhost,count.index+1)]
+    mac            = format("AA:BB:CC:11:22:%s%s",var.osdsubhost,count.index+1)
+    wait_for_lease = true
+  }
+
+  # IMPORTANT: this is a known bug on cloud images, since they expect a console
+  # we need to pass it
+  # https://bugs.launchpad.net/cloud-images/+bug/1573095
+  console {
+    type        = "pty"
+    target_port = "0"
+    target_type = "serial"
+  }
+
+  console {
+    type        = "pty"
+    target_type = "virtio"
+    target_port = "1"
+  }
+
+  disk {
+    volume_id = libvirt_volume.osdvolume-qcow2.*.id[count.index]
+  }
+
+  disk {
+    volume_id = libvirt_volume.secondary-qcow2.*.id[count.index]
+  }
+
+  graphics {
+    type        = "spice"
+    listen_type = "address"
+    autoport    = true
+  }
+}

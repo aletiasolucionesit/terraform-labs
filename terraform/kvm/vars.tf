@@ -1,17 +1,22 @@
 variable "image_id" {
   type = string
-  default = "https://cloud.centos.org/centos/8/x86_64/images/CentOS-8-GenericCloud-8.3.2011-20201204.2.x86_64.qcow2"
-  # default = "/var/lib/libvirt/images/CentOS-8-GenericCloud-8.3.2011-20201204.2.x86_64.qcow2"
+  # default = "https://cloud.centos.org/centos/8/x86_64/images/CentOS-8-GenericCloud-8.3.2011-20201204.2.x86_64.qcow2"
+  default = "/var/lib/libvirt/images/CentOS-8-GenericCloud-8.3.2011-20201204.2.x86_64.qcow2"
 }
 
 variable "purpose" {
   type = string
-  default = "test"
+  default = "ceph"
 }
 
-variable "machine_count" {
-  type = string
-  default = "2"
+variable "mon_count" {
+  type = number
+  default = 3
+}
+
+variable "osd_count" {
+  type = number
+  default = 3
 }
 
 variable "libvirt_pool"{
@@ -39,9 +44,14 @@ variable "machinename"{
   default = "node"
 }
 
-variable "machinesubhost"{
+variable "monsubhost"{
   type = number
   default = 2
+}
+
+variable "osdsubhost"{
+  type = number
+  default = 3
 }
 
 variable "memory"{
@@ -51,7 +61,27 @@ variable "memory"{
 
 variable "vcpu"{
   type = number
-  default = 4
+  default = 1
+}
+
+variable "mon_memory"{
+  type = number
+  default = 2048 
+}
+
+variable "mon_vcpu"{
+  type = number
+  default = 1
+}
+
+variable "osd_memory"{
+  type = number
+  default = 4096
+}
+
+variable "osd_vcpu"{
+  type = number
+  default = 1
 }
 
 variable "base_domain"{
