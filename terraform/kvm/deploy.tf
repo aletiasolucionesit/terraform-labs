@@ -1,3 +1,12 @@
+terraform {
+ required_version = ">= 0.13"
+  required_providers {
+    libvirt = {
+      source  = "dmacvicar/libvirt"
+      version = "0.6.3"
+    }
+  }
+}
 # instance the provider
 provider "libvirt" {
   uri = "qemu:///system"
@@ -72,7 +81,7 @@ resource "libvirt_domain" "domain-machine" {
   network_interface {
     network_name = libvirt_network.network.name
     hostname       = format("%s-%s.%s.%s",var.machinename,count.index+1,var.purpose,var.base_domain)
-    addresses      = [format("%s.%s.%s",var.base_ip,var.machinesubhost,count.index+1)]
+    addresses      = [format("%s.%s%s",var.base_ip,var.machinesubhost,count.index+1)]
     mac            = format("AA:BB:CC:11:22:%s%s",var.machinesubhost,count.index+1)
     wait_for_lease = true
   }
