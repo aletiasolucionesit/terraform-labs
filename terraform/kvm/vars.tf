@@ -6,7 +6,7 @@ variable "image_id" {
 
 variable "purpose" {
   type = string
-  default = "example"
+  default = "do400"
 }
 
 variable "machine_count" {
@@ -21,7 +21,8 @@ variable "libvirt_pool"{
 
 variable "maindisk_size"{
   type = number
-  default = 21474836480
+  #default = 21474836480
+  default = 53687091200
 }
 
 variable "secondarydisk_size"{
@@ -46,17 +47,17 @@ variable "machinesubhost"{
 
 variable "memory"{
   type = number
-  default = 1024
+  default = 4096
 }
 
 variable "vcpu"{
   type = number
-  default = 1
+  default = 2
 }
 
 variable "base_domain"{
   type = string
-  default = "com"
+  default = "example.com"
 }
 
 variable "base_ip"{
