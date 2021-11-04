@@ -1,17 +1,18 @@
 variable "image_id" {
   type = string
   #default = "https://cloud.centos.org/centos/8/x86_64/images/CentOS-8-GenericCloud-8.4.2105-20210603.0.x86_64.qcow2"
-  default = "/var/lib/libvirt/images/CentOS-8-GenericCloud-8.4.2105-20210603.0.x86_64.qcow2"
+  #default = "/var/lib/libvirt/images/CentOS-8-GenericCloud-8.4.2105-20210603.0.x86_64.qcow2"
+  default = "/var/lib/libvirt/images/CentOS-7-x86_64-GenericCloud.qcow2"
 }
 
 variable "purpose" {
   type = string
-  default = "do400"
+  default = "ocp3"
 }
 
 variable "machine_count" {
   type = string
-  default = "1"
+  default = "3"
 }
 
 variable "libvirt_pool"{
@@ -21,8 +22,7 @@ variable "libvirt_pool"{
 
 variable "maindisk_size"{
   type = number
-  #default = 21474836480
-  default = 53687091200
+  default = 21474836480
 }
 
 variable "secondarydisk_size"{
@@ -37,7 +37,7 @@ variable "secondary"{
 
 variable "machinename"{
   type = string
-  default = "workstation"
+  default = "node"
 }
 
 variable "machinesubhost"{
@@ -47,7 +47,7 @@ variable "machinesubhost"{
 
 variable "memory"{
   type = number
-  default = 4096
+  default = 6192
 }
 
 variable "vcpu"{
@@ -57,10 +57,10 @@ variable "vcpu"{
 
 variable "base_domain"{
   type = string
-  default = "example.com"
+  default = "dummy"
 }
 
 variable "base_ip"{
   type = string
-  default = "192.168.100"
+  default = "192.168.27"
 }

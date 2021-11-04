@@ -16,23 +16,15 @@ ssh_pwauth: True
 chpasswd:
   list: |
      root:toor
-     dmartin:dmartin
   expire: False
 users:
-  - name: dmartin
-    groups: wheel
-    sudo: "ALL=(ALL) NOPASSWD: ALL"
-    ssh-authorized-keys:
-      - ${file("~/.ssh/david_rsa.pub")}
   - name: root
     ssh-authorized-keys:
       - ${file("~/.ssh/david_rsa.pub")}
-runcmd:
+bootcmd:
   - sed -i 's/.*UseDNS.*/UseDNS no/' /etc/ssh/sshd_config
-  - systemct set-default graphical.target
 
 # Optional: list of packages to install
-packages:
-  - "@gnome-desktop"
+# packages:
 #   - package_name
 #   - @package_group_name
