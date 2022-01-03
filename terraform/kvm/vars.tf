@@ -12,7 +12,7 @@ variable "purpose" {
 
 variable "machine_count" {
   type = string
-  default = "3"
+  default = "4"
 }
 
 variable "libvirt_pool"{
