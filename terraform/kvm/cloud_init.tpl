@@ -20,7 +20,7 @@ chpasswd:
 users:
   - name: dmartin
     groups: wheel
-    sudo: ALL=(ALL) NOPASSWD: ALL
+    sudo: "ALL=(ALL) NOPASSWD: ALL"
     ssh-authorized-keys:
       - ${file("~/.ssh/david_rsa.pub")}
   - name: root
